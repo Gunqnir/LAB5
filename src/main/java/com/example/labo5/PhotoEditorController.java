@@ -2,6 +2,7 @@ package com.example.labo5;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
@@ -15,8 +16,14 @@ public class PhotoEditorController {
     @FXML
     private ImageView imageView;
 
-    @FXML
-    protected void onLoadImageClick() {
+    private MenuItem ouvrirMenuItem;
+
+    public void setOuvrirMenuItem(MenuItem ouvrirMenuItem) {
+        this.ouvrirMenuItem = ouvrirMenuItem;
+        this.ouvrirMenuItem.setOnAction(e -> onLoadImage());
+    }
+
+    private void onLoadImage() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
         File selectedFile = fileChooser.showOpenDialog(null);

@@ -19,20 +19,32 @@ public class PhotoEditorApplication extends Application {
         // Create MenuBar
         MenuBar menuBar = new MenuBar();
 
-        // Add menu options
+        // Add menus
         Menu fichier = new Menu("Fichier");
-        MenuItem ouvrir = new MenuItem("Ouvrir");
+        Menu perspective = new Menu("Perspective");
+        Menu aide = new Menu("Aide");
+
+        // Add menu items to "Fichier"
+        MenuItem nouveau = new MenuItem("Nouveau");
+        MenuItem ouvrir = new MenuItem("Ouvrir"); // For uploading an image
+        MenuItem sauvegarder = new MenuItem("Sauvegarder");
         MenuItem quitter = new MenuItem("Quitter");
         quitter.setOnAction(e -> System.exit(0));
-        fichier.getItems().addAll(ouvrir, quitter);
+        fichier.getItems().addAll(nouveau, ouvrir, sauvegarder, quitter);
 
-        menuBar.getMenus().addAll(fichier);
+        // Add menus to the menu bar
+        menuBar.getMenus().addAll(fichier, perspective, aide);
 
         // Load the FXML layout
         BorderPane layout = new BorderPane();
         layout.setTop(menuBar);
         layout.setCenter(fxmlLoader.load());
 
+        // Pass the "Ouvrir" menu item to the controller
+        PhotoEditorController controller = fxmlLoader.getController();
+        controller.setOuvrirMenuItem(ouvrir);
+
+        // Create and set the scene
         Scene scene = new Scene(layout, 600, 600);
         stage.setScene(scene);
         stage.show();
