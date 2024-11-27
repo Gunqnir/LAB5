@@ -6,46 +6,47 @@ import javafx.scene.Scene;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 public class PhotoEditorApplication extends Application {
     @Override
     public void start(Stage stage) throws Exception {
+        // Load the FXML layout
         FXMLLoader fxmlLoader = new FXMLLoader(PhotoEditorApplication.class.getResource("photo-editor-view.fxml"));
+        BorderPane layout = new BorderPane(fxmlLoader.load());
 
-        stage.setTitle("PhotoEditor");
-
-        // Create MenuBar
+        // Menu setup
         MenuBar menuBar = new MenuBar();
-
-        // Add menus
         Menu fichier = new Menu("Fichier");
         Menu perspective = new Menu("Perspective");
         Menu aide = new Menu("Aide");
 
-        // Add menu items to "Fichier"
+
         MenuItem nouveau = new MenuItem("Nouveau");
-        MenuItem ouvrir = new MenuItem("Ouvrir"); // For uploading an image
+        MenuItem ouvrir = new MenuItem("Ouvrir");
         MenuItem sauvegarder = new MenuItem("Sauvegarder");
+        MenuItem fermerTout = new MenuItem("Fermer tout");
         MenuItem quitter = new MenuItem("Quitter");
         quitter.setOnAction(e -> System.exit(0));
-        fichier.getItems().addAll(nouveau, ouvrir, sauvegarder, quitter);
+        fichier.getItems().addAll(nouveau, ouvrir, sauvegarder, fermerTout, quitter);
 
-        // Add menus to the menu bar
         menuBar.getMenus().addAll(fichier, perspective, aide);
-
-        // Load the FXML layout
-        BorderPane layout = new BorderPane();
         layout.setTop(menuBar);
-        layout.setCenter(fxmlLoader.load());
 
-        // Pass the "Ouvrir" menu item to the controller
+        // Add a TabPane for managing tabs
+        TabPane tabPane = new TabPane();
+        layout.setCenter(tabPane);
+
+        // Pass menu items and TabPane to the controller
         PhotoEditorController controller = fxmlLoader.getController();
         controller.setOuvrirMenuItem(ouvrir);
+        controller.setTabPane(tabPane);
 
-        // Create and set the scene
-        Scene scene = new Scene(layout, 600, 600);
+        // Stage setup
+        Scene scene = new Scene(layout, 800, 600);
+        stage.setTitle("PhotoEditor");
         stage.setScene(scene);
         stage.show();
     }
