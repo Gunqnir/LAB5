@@ -41,7 +41,7 @@
             <!-- Zoom Slider -->
             <Label text="Zoom: "/>
             <Slider fx:id="zoomSlider" min="10" max="200" value="100" blockIncrement="10" />
-            <Label fx:id="zoomPercentage" text="100%" style="-fx-padding: 10px;"/>
+            <Label fx:id="zoomPercentageLabel" text="100%" style="-fx-padding: 10px;"/>
         </HBox>
     </bottom>
 </BorderPane>

@@ -6,8 +6,9 @@ import javafx.scene.input.MouseEvent;
 
 public class Perspective extends Tab implements Observer {
     private final ImageView imageView;
-    private double startX; // Dragging start X position
-    private double startY; // Dragging start Y position
+    private double x = 0.0;
+    private double y = 0.0;
+    private double zoomLevel = 1.0;
 
     public Perspective(String title, ImageModel imageModel) {
         super(title);
@@ -16,61 +17,46 @@ public class Perspective extends Tab implements Observer {
         this.imageView.setFitWidth(800);
         this.imageView.setFitHeight(600);
 
-        // Set the current image
         if (imageModel.getImage() != null) {
             this.imageView.setImage(imageModel.getImage());
         }
 
         this.setContent(imageView);
-        initializeDragFeature();
-    }
-
-    private void initializeDragFeature() {
-        // Add drag handlers to the ImageView
-        imageView.setOnMousePressed(this::onMousePressed);
-        imageView.setOnMouseDragged(this::onMouseDragged);
-    }
-
-    private void onMousePressed(MouseEvent event) {
-        startX = event.getSceneX();
-        startY = event.getSceneY();
-    }
-
-    private void onMouseDragged(MouseEvent event) {
-        double deltaX = event.getSceneX() - startX;
-        double deltaY = event.getSceneY() - startY;
-
-        // Update image translation
-        imageView.setTranslateX(imageView.getTranslateX() + deltaX);
-        imageView.setTranslateY(imageView.getTranslateY() + deltaY);
-
-        // Update start position
-        startX = event.getSceneX();
-        startY = event.getSceneY();
     }
 
     public ImageView getImageView() {
         return imageView;
     }
 
-    public double getStartX() {
-        return startX;
+    public double getX() {
+        return x;
     }
 
-    public void setStartX(double startX) {
-        this.startX = startX;
+    public void setX(double x) {
+        this.x = x;
     }
 
-    public double getStartY() {
-        return startY;
+    public double getY() {
+        return y;
     }
 
-    public void setStartY(double startY) {
-        this.startY = startY;
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public double getZoomLevel() {
+        return zoomLevel;
+    }
+
+    public void setZoomLevel(double zoomLevel) {
+        this.zoomLevel = zoomLevel;
     }
 
     @Override
     public void update(ImageModel subject) {
-        this.imageView.setImage(subject.getImage());
+        if (subject.getImage() != null) {
+            this.imageView.setImage(subject.getImage());
+        }
     }
 }
+

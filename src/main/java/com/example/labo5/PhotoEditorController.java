@@ -20,7 +20,7 @@ public class PhotoEditorController {
     @FXML
     private Slider zoomSlider; // Slider for zooming
     @FXML
-    private Label zoomPercentage; // Label to display zoom percentage
+    private Label zoomPercentageLabel; // Label to display zoom percentage
     @FXML
     private Label positionLabel; // Label to display x and y coordinates
     @FXML
@@ -34,76 +34,117 @@ public class PhotoEditorController {
 
     @FXML
     public void initialize() {
-        // Set actions for toolbar buttons
+        // Set actions for undo and redo
         undoButton.setOnAction(e -> commandManager.undo());
         redoButton.setOnAction(e -> commandManager.redo());
 
-        // Disable undo and redo buttons initially
+        // Disable undo and redo initially
         undoButton.setDisable(true);
         redoButton.setDisable(true);
 
-        // Add listener to TabPane selection to toggle the control bar
-        tabPane.getSelectionModel().selectedItemProperty().addListener((observable, oldTab, newTab) -> {
-            if (newTab != null && newTab.getText().startsWith("Perspective")) {
-                controlBar.setVisible(true); // Show controls for Perspective tabs
+        // Listen to tab selection changes
+        tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab instanceof Perspective) {
+                Perspective perspective = (Perspective) newTab;
+                updateUIForPerspective(perspective);
             } else {
-                controlBar.setVisible(false); // Hide controls for other tabs (e.g., Thumbnail)
+                resetUI(); // Hide controls for non-Perspective tabs
             }
         });
 
-        // Set up zoom slider actions
-        zoomSlider.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                double zoomFactor = newValue.doubleValue() / 100.0; // Convert percentage to factor
-                applyZoom(zoomFactor);
-                zoomPercentage.setText(String.format("%.0f%%", newValue.doubleValue())); // Update zoom percentage label
+        // Listen to zoom slider changes
+        zoomSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab instanceof Perspective) {
+                Perspective perspective = (Perspective) selectedTab;
+
+                double zoomFactor = newVal.doubleValue() / 100.0; // Convert slider value to zoom factor
+                perspective.setZoomLevel(zoomFactor);
+
+                ImageView imageView = perspective.getImageView();
+                imageView.setScaleX(zoomFactor);
+                imageView.setScaleY(zoomFactor);
+
+                // Update zoom percentage label
+                updateZoomLabel(newVal.doubleValue());
             }
         });
-
-        // Initialize zoom percentage to 100%
-        zoomSlider.setValue(100);
-        zoomPercentage.setText("100%");
     }
 
-    private void applyZoom(double zoomFactor) {
-        Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-        if (selectedTab instanceof Perspective) {
-            Perspective perspective = (Perspective) selectedTab;
-            ZoomingCommand zoomingCommand = new ZoomingCommand(perspective.getImageView(), zoomFactor);
-            commandManager.executeCommand(zoomingCommand);
-        }
+
+    @FXML
+    private void initializeZoomSlider() {
+        zoomSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab instanceof Perspective) {
+                Perspective perspective = (Perspective) selectedTab;
+
+                double zoomFactor = newValue.doubleValue() / 100.0; // Convert to percentage
+                perspective.setZoomLevel(zoomFactor);
+
+                ImageView imageView = perspective.getImageView();
+                imageView.setScaleX(zoomFactor);
+                imageView.setScaleY(zoomFactor);
+
+                // Update the zoom percentage label
+                zoomPercentageLabel.setText(String.format("%.0f%%", newValue));
+            }
+        });
+    }
+
+
+    private void updateUIForPerspective(Perspective perspective) {
+        controlBar.setVisible(true);
+
+        // Update the zoom slider and label
+        double zoomPercentage = perspective.getZoomLevel() * 100;
+        zoomSlider.setValue(zoomPercentage);
+        updateZoomLabel(zoomPercentage);
+
+        // Update the position label
+        updatePositionLabel(perspective.getX(), perspective.getY());
+    }
+
+    private void resetUI() {
+        controlBar.setVisible(false);
+    }
+
+    private void updateZoomLabel(double zoomPercentage) {
+        zoomPercentageLabel.setText(String.format("%.0f%%", zoomPercentage));
     }
 
     private void updatePositionLabel(double x, double y) {
-        positionLabel.setText(String.format("x = %.0f : y = %.0f", x, -y));
+        positionLabel.setText(String.format("x = %.0f : y = %.0f", x, y));
     }
+
 
 
     private void initializeDraggingForPerspective(Perspective perspective) {
         ImageView imageView = perspective.getImageView();
 
         imageView.setOnMousePressed(event -> {
-            perspective.setStartX(event.getSceneX());
-            perspective.setStartY(event.getSceneY());
+            perspective.setX(event.getSceneX());
+            perspective.setY(event.getSceneY());
         });
 
         imageView.setOnMouseDragged(event -> {
-            double deltaX = event.getSceneX() - perspective.getStartX();
-            double deltaY = event.getSceneY() - perspective.getStartY();
+            double deltaX = event.getSceneX() - perspective.getX();
+            double deltaY = event.getSceneY() - perspective.getY();
 
-            // Create a PositioningCommand and execute it
-            PositioningCommand positioningCommand = new PositioningCommand(imageView, deltaX, deltaY);
-            commandManager.executeCommand(positioningCommand);
+            // Update the ImageView translation
+            imageView.setTranslateX(imageView.getTranslateX() + deltaX);
+            imageView.setTranslateY(imageView.getTranslateY() + deltaY);
 
-            // Update perspective drag start
-            perspective.setStartX(event.getSceneX());
-            perspective.setStartY(event.getSceneY());
+            // Update the Perspective's position
+            perspective.setX(event.getSceneX());
+            perspective.setY(event.getSceneY());
 
             // Update the position label
-            updatePositionLabel(imageView.getTranslateX(), imageView.getTranslateY());
+            updatePositionLabel(imageView.getTranslateX(), -imageView.getTranslateY());
         });
     }
+
+
 
 
 
@@ -150,16 +191,19 @@ public class PhotoEditorController {
         }
 
         int perspectiveCount = tabPane.getTabs().size();
-        Perspective perspective = new Perspective("Perspective " + perspectiveCount, imageModel);
-        imageModel.attach(perspective);
 
-        // Initialize dragging functionality for the new perspective
-        initializeDraggingForPerspective(perspective);
+        Perspective perspective = new Perspective("Perspective " + perspectiveCount, imageModel);
+        imageModel.attach(perspective); // Attach the perspective as an observer of the ImageModel
 
         tabPane.getTabs().add(perspective);
         tabPane.getSelectionModel().select(perspective);
+
+        // Initialize dragging and zooming for the new perspective
+        initializeDraggingForPerspective(perspective);
+
         System.out.println("New perspective created: " + perspective.getText());
     }
+
 
 
     // Method to dynamically set menu items (called during application setup)
