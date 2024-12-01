@@ -6,6 +6,11 @@
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.BorderPane?>
 
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.layout.Region?>
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.example.labo5.PhotoEditorController">
     <top>
@@ -21,4 +26,23 @@
     <center>
         <TabPane fx:id="tabPane"/>
     </center>
+    <bottom>
+        <HBox fx:id="controlBar" spacing="10" alignment="CENTER_LEFT">
+            <!-- X and Y Position -->
+            <Label fx:id="positionLabel" text="x = 0; y = 0" style="-fx-padding: 10px;"/>
+
+            <!-- Undo/Redo Buttons -->
+            <Button fx:id="undoButton" text="Undo"/>
+            <Button fx:id="redoButton" text="Redo"/>
+
+            <!-- Spacer for Center Alignment -->
+            <Region fx:id="spacer" HBox.hgrow="ALWAYS"/>
+
+            <!-- Zoom Slider -->
+            <Label text="Zoom: "/>
+            <Slider fx:id="zoomSlider" min="10" max="200" value="100" blockIncrement="10" />
+            <Label fx:id="zoomPercentage" text="100%" style="-fx-padding: 10px;"/>
+        </HBox>
+    </bottom>
 </BorderPane>
+

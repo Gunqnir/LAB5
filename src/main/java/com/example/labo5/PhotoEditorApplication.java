@@ -55,3 +55,4 @@ public class PhotoEditorApplication extends Application {
         launch();
     }
 }
+
