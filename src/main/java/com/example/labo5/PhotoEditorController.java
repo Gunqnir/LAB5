@@ -1,7 +1,5 @@
 package com.example.labo5;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
@@ -9,7 +7,7 @@ import javafx.scene.layout.HBox;
 
 public class PhotoEditorController {
     private final ImageModel imageModel = new ImageModel(); // Central model for the image
-    private final CommandManager commandManager = new CommandManager(); // Command manager for undo/redo
+    private final CommandManager commandManager = CommandManager.getInstance(); // Singleton CommandManager
 
     @FXML
     private TabPane tabPane; // Injected from FXML
@@ -24,23 +22,29 @@ public class PhotoEditorController {
     @FXML
     private Label positionLabel; // Label to display x and y coordinates
     @FXML
+    private HBox controlBar; // Toolbar at the bottom
+    @FXML
     private MenuItem ouvrirMenuItem; // Injected from FXML
     @FXML
     private MenuItem newPerspectiveMenuItem; // Injected from FXML
     @FXML
     private MenuItem sauvegarderMenuItem; // Placeholder for Save functionality
-    @FXML
-    private HBox controlBar; // Toolbar at the bottom
 
     @FXML
     public void initialize() {
         // Set actions for undo and redo
-        undoButton.setOnAction(e -> commandManager.undo());
-        redoButton.setOnAction(e -> commandManager.redo());
+        undoButton.setOnAction(e -> {
+            commandManager.undo();
+            updateUndoRedoButtons();
+        });
+
+        redoButton.setOnAction(e -> {
+            commandManager.redo();
+            updateUndoRedoButtons();
+        });
 
         // Disable undo and redo initially
-        undoButton.setDisable(true);
-        redoButton.setDisable(true);
+        updateUndoRedoButtons();
 
         // Listen to tab selection changes
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -57,41 +61,20 @@ public class PhotoEditorController {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab instanceof Perspective) {
                 Perspective perspective = (Perspective) selectedTab;
-
                 double zoomFactor = newVal.doubleValue() / 100.0; // Convert slider value to zoom factor
-                perspective.setZoomLevel(zoomFactor);
+                ZoomingCommand zoomingCommand = new ZoomingCommand(perspective.getImageView(), zoomFactor);
+                commandManager.executeCommand(zoomingCommand);
 
-                ImageView imageView = perspective.getImageView();
-                imageView.setScaleX(zoomFactor);
-                imageView.setScaleY(zoomFactor);
-
-                // Update zoom percentage label
                 updateZoomLabel(newVal.doubleValue());
+                updateUndoRedoButtons();
             }
         });
     }
 
-
-    @FXML
-    private void initializeZoomSlider() {
-        zoomSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
-            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-            if (selectedTab instanceof Perspective) {
-                Perspective perspective = (Perspective) selectedTab;
-
-                double zoomFactor = newValue.doubleValue() / 100.0; // Convert to percentage
-                perspective.setZoomLevel(zoomFactor);
-
-                ImageView imageView = perspective.getImageView();
-                imageView.setScaleX(zoomFactor);
-                imageView.setScaleY(zoomFactor);
-
-                // Update the zoom percentage label
-                zoomPercentageLabel.setText(String.format("%.0f%%", newValue));
-            }
-        });
+    private void updateUndoRedoButtons() {
+        undoButton.setDisable(commandManager.isUndoStackEmpty());
+        redoButton.setDisable(commandManager.isRedoStackEmpty());
     }
-
 
     private void updateUIForPerspective(Perspective perspective) {
         controlBar.setVisible(true);
@@ -117,8 +100,6 @@ public class PhotoEditorController {
         positionLabel.setText(String.format("x = %.0f : y = %.0f", x, y));
     }
 
-
-
     private void initializeDraggingForPerspective(Perspective perspective) {
         ImageView imageView = perspective.getImageView();
 
@@ -131,22 +112,16 @@ public class PhotoEditorController {
             double deltaX = event.getSceneX() - perspective.getX();
             double deltaY = event.getSceneY() - perspective.getY();
 
-            // Update the ImageView translation
-            imageView.setTranslateX(imageView.getTranslateX() + deltaX);
-            imageView.setTranslateY(imageView.getTranslateY() + deltaY);
+            PositioningCommand positioningCommand = new PositioningCommand(imageView, deltaX, deltaY);
+            commandManager.executeCommand(positioningCommand);
 
-            // Update the Perspective's position
             perspective.setX(event.getSceneX());
             perspective.setY(event.getSceneY());
 
-            // Update the position label
             updatePositionLabel(imageView.getTranslateX(), -imageView.getTranslateY());
+            updateUndoRedoButtons();
         });
     }
-
-
-
-
 
     private void onLoadImage() {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
@@ -203,8 +178,6 @@ public class PhotoEditorController {
 
         System.out.println("New perspective created: " + perspective.getText());
     }
-
-
 
     // Method to dynamically set menu items (called during application setup)
     public void setMenuItems(MenuItem ouvrir, MenuItem undo, MenuItem redo, MenuItem newPerspective, MenuItem sauvegarder) {
