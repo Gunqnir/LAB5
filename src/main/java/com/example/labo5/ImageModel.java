@@ -6,34 +6,33 @@ import java.util.List;
 
 public class ImageModel {
     private List<Observer> observers = new ArrayList<>();
-    private Image image;
-    private boolean hasImageLoaded = false; // Track if an image is loaded
+    private Image image; // The current image being managed
 
-    public void attach(Observer o) {
-        observers.add(o);
+    public void attach(Observer observer) {
+        observers.add(observer);
     }
 
-    public void detach(Observer o) {
-        observers.remove(o);
+    public void detach(Observer observer) {
+        observers.remove(observer);
     }
 
     public void notifyObservers() {
-        for (Observer o : observers) {
-            o.update(this);
+        for (Observer observer : observers) {
+            observer.update(this);
         }
     }
 
     public void setImage(Image image) {
         this.image = image;
-        this.hasImageLoaded = (image != null);
-        notifyObservers();
+        notifyObservers(); // Notify all observers of the image change
     }
 
     public Image getImage() {
         return image;
     }
 
+    // New method to check if an image is loaded
     public boolean isImageLoaded() {
-        return hasImageLoaded;
+        return image != null; // Return true if the image is not null
     }
 }

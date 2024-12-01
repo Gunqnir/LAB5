@@ -3,26 +3,21 @@ package com.example.labo5;
 import javafx.fxml.FXML;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.image.Image;
-import javafx.stage.FileChooser;
-
-import java.io.File;
 
 public class PhotoEditorController {
     private ImageModel imageModel = new ImageModel(); // Central model for the image
-    private Tab thumbnailTab; // The thumbnail tab
-    private int perspectiveCount = 0; // Counter for naming perspectives
-
     @FXML
     private TabPane tabPane; // Injected from FXML
-    private Menu perspectiveMenu;
+    @FXML
     private MenuItem ouvrirMenuItem;
     private MenuItem sauvegarderMenuItem;
     private MenuItem fermerToutMenuItem;
+    private Menu perspectiveMenu;
+    @FXML
     private MenuItem newPerspectiveMenuItem;
 
+    // Method to set menu items
     public void setMenuItems(MenuItem ouvrir, MenuItem sauvegarder, MenuItem fermerTout, Menu perspective, MenuItem newPerspective) {
         this.ouvrirMenuItem = ouvrir;
         this.sauvegarderMenuItem = sauvegarder;
@@ -30,59 +25,68 @@ public class PhotoEditorController {
         this.perspectiveMenu = perspective;
         this.newPerspectiveMenuItem = newPerspective;
 
-        // Set actions
+        // Set up menu item actions
         this.ouvrirMenuItem.setOnAction(e -> onLoadImage());
         this.newPerspectiveMenuItem.setOnAction(e -> createNewPerspective());
 
         // Initially disable certain menu items
-        this.perspectiveMenu.setDisable(true); // Disable entire "Perspective" menu
+        this.perspectiveMenu.setDisable(true); // Disable the entire Perspective menu
         this.sauvegarderMenuItem.setDisable(true);
         this.fermerToutMenuItem.setDisable(true);
 
-        // Attach menu items as observers to the image model
-        imageModel.attach(new MenuItemObserver(perspectiveMenu, true));
-        imageModel.attach(new MenuItemObserver(sauvegarderMenuItem, true));
-        imageModel.attach(new MenuItemObserver(fermerToutMenuItem, true));
+        // Attach menu items to ImageModel as observers
+        imageModel.attach(subject -> {
+            boolean imageLoaded = subject.getImage() != null;
+            perspectiveMenu.setDisable(!imageLoaded);
+            sauvegarderMenuItem.setDisable(!imageLoaded);
+            fermerToutMenuItem.setDisable(!imageLoaded);
+        });
     }
 
     private void onLoadImage() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-        File selectedFile = fileChooser.showOpenDialog(null);
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        java.io.File selectedFile = fileChooser.showOpenDialog(null);
 
         if (selectedFile != null) {
             System.out.println("File selected: " + selectedFile.getAbsolutePath());
-            Image image = new Image(selectedFile.toURI().toString());
-            imageModel.setImage(image); // Update the model, which updates all observers
+            javafx.scene.image.Image image = new javafx.scene.image.Image(selectedFile.toURI().toString());
+            imageModel.setImage(image); // Update the ImageModel with the new image
             updateThumbnailTab(image); // Create or update the thumbnail tab
         } else {
             System.out.println("No file selected.");
         }
     }
 
-    private void updateThumbnailTab(Image image) {
-        if (thumbnailTab == null) {
-            // Create the thumbnail tab if it doesn't exist
-            thumbnailTab = new Tab("Thumbnail");
+
+    private void updateThumbnailTab(javafx.scene.image.Image image) {
+        // Check if the thumbnail tab exists
+        if (tabPane.getTabs().isEmpty() || !tabPane.getTabs().get(0).getText().equals("Thumbnail")) {
+            // Create the thumbnail tab
+            javafx.scene.control.Tab thumbnailTab = new javafx.scene.control.Tab("Thumbnail");
             javafx.scene.image.ImageView thumbnailView = new javafx.scene.image.ImageView();
-            thumbnailView.setFitWidth(800); // Match the application size
             thumbnailView.setPreserveRatio(true);
+            thumbnailView.setFitWidth(800); // Adjust to match your app dimensions
+            thumbnailView.setImage(image);
 
-            // Add the ImageView to the tab and make it non-closable
+            // Set the ImageView as the content of the tab
             thumbnailTab.setContent(thumbnailView);
-            thumbnailTab.setClosable(false);
+            thumbnailTab.setClosable(false); // Prevent the thumbnail tab from being closed
 
-            // Add the thumbnail tab to the TabPane
-            tabPane.getTabs().add(0, thumbnailTab); // Add as the first tab
+            // Add the tab to the TabPane
+            tabPane.getTabs().add(0, thumbnailTab); // Add it as the first tab
+        } else {
+            // Update the existing thumbnail tab's ImageView
+            javafx.scene.control.Tab thumbnailTab = tabPane.getTabs().get(0);
+            javafx.scene.image.ImageView thumbnailView = (javafx.scene.image.ImageView) thumbnailTab.getContent();
+            thumbnailView.setImage(image);
         }
 
-        // Update the thumbnail's ImageView with the new image
-        javafx.scene.image.ImageView thumbnailView = (javafx.scene.image.ImageView) thumbnailTab.getContent();
-        thumbnailView.setImage(image);
-
         // Select the thumbnail tab
-        tabPane.getSelectionModel().select(thumbnailTab);
+        tabPane.getSelectionModel().select(0);
     }
+
+
 
     private void createNewPerspective() {
         if (imageModel.getImage() == null) {
@@ -90,24 +94,20 @@ public class PhotoEditorController {
             return;
         }
 
-        // Increment the perspective count for unique names
-        perspectiveCount++;
+        // Count the number of tabs for unique perspective names
+        int perspectiveCount = tabPane.getTabs().size();
 
-        // Create a new tab with the perspective name
-        String perspectiveName = "Perspective " + perspectiveCount;
-        Tab tab = new Tab(perspectiveName);
+        // Create a new Perspective tab linked to the ImageModel
+        Perspective perspective = new Perspective("Perspective " + perspectiveCount, imageModel);
+        imageModel.attach(perspective); // Attach the perspective as an observer of the ImageModel
 
-        // Create an ImageView for the perspective
-        javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView(imageModel.getImage());
-        imageView.setFitWidth(800); // Match the application size
-        imageView.setPreserveRatio(true);
-
-        // Add the ImageView to the tab
-        tab.setContent(imageView);
-        tabPane.getTabs().add(tab);
+        // Add the perspective tab to the TabPane
+        tabPane.getTabs().add(perspective);
 
         // Select the new tab
-        tabPane.getSelectionModel().select(tab);
-        System.out.println("New perspective created: " + perspectiveName);
+        tabPane.getSelectionModel().select(perspective);
+        System.out.println("New perspective created: " + perspective.getText());
     }
+
+
 }
