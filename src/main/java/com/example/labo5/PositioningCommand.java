@@ -4,26 +4,28 @@ import javafx.scene.image.ImageView;
 
 public class PositioningCommand implements Command {
     private final ImageView imageView;
-    private final double deltaX, deltaY;
-    private final double previousX, previousY;
+    private final double initialX, initialY; // Initial position
+    private final double finalX, finalY;     // Final position
 
-    public PositioningCommand(ImageView imageView, double deltaX, double deltaY) {
+    public PositioningCommand(ImageView imageView, double initialX, double initialY, double finalX, double finalY) {
         this.imageView = imageView;
-        this.deltaX = deltaX;
-        this.deltaY = deltaY;
-        this.previousX = imageView.getTranslateX();
-        this.previousY = imageView.getTranslateY();
+        this.initialX = initialX;
+        this.initialY = initialY;
+        this.finalX = finalX;
+        this.finalY = finalY;
     }
 
     @Override
     public void execute() {
-        imageView.setTranslateX(previousX + deltaX);
-        imageView.setTranslateY(previousY + deltaY);
+        // Move the ImageView to the final position
+        imageView.setTranslateX(finalX);
+        imageView.setTranslateY(finalY);
     }
 
     @Override
     public void undo() {
-        imageView.setTranslateX(previousX);
-        imageView.setTranslateY(previousY);
+        // Revert the ImageView to the initial position
+        imageView.setTranslateX(initialX);
+        imageView.setTranslateY(initialY);
     }
 }

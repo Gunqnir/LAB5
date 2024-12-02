@@ -9,7 +9,6 @@ import javafx.scene.layout.HBox;
 
 public class PhotoEditorController {
     private final ImageModel imageModel = new ImageModel(); // Central model for the image
-    private final CommandManager commandManager = CommandManager.getInstance();
 
     @FXML
     private TabPane tabPane; // Injected from FXML
@@ -39,19 +38,32 @@ public class PhotoEditorController {
         // Initially hide the control bar as no image is loaded yet
         controlBar.setVisible(false);
 
-        // Set actions for undo and redo
-        undoButton.setOnAction(e -> commandManager.undo());
-        redoButton.setOnAction(e -> commandManager.redo());
-
         // Disable undo and redo initially
         undoButton.setDisable(true);
         redoButton.setDisable(true);
+
+        undoButton.setOnAction(e -> {
+            Perspective perspective = getSelectedPerspective();
+            if (perspective != null) {
+                perspective.getCommandManager().undo();
+                updateUndoRedoButtons(perspective);
+            }
+        });
+
+        redoButton.setOnAction(e -> {
+            Perspective perspective = getSelectedPerspective();
+            if (perspective != null) {
+                perspective.getCommandManager().redo();
+                updateUndoRedoButtons(perspective);
+            }
+        });
 
         // Listen to tab selection changes
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof Perspective) {
                 Perspective perspective = (Perspective) newTab;
                 updateUIForPerspective(perspective);
+                updateUndoRedoButtons((Perspective) newTab);
             } else {
                 resetUI(); // Hide controls for non-Perspective tabs
             }
@@ -75,16 +87,34 @@ public class PhotoEditorController {
                 double finalZoom = zoomSlider.getValue() / 100.0; // Final zoom
 
                 // Create a zoom command
-                Command zoomCommand = new ZoomingCommand(perspective.getImageView(), finalZoom / initialZoom);
-                CommandManager.getInstance().executeCommand(zoomCommand);
+                Command zoomCommand = new ZoomingCommand(perspective.getImageView(), initialZoom, finalZoom);
 
-                // Update perspective zoom
+                // Execute the command using the perspective's CommandManager
+                perspective.getCommandManager().executeCommand(zoomCommand);
+                updateUndoRedoButtons(perspective);
+
+                // Update the perspective zoom
                 perspective.setZoomLevel(finalZoom);
-                updateZoomLabel(finalZoom*100);
-                // Log the final zoom level
-                System.out.println("Zoom ended: Final zoom level: " + (finalZoom * 100) + "%");
+                updateZoomLabel(finalZoom * 100);
+
+                // Log the final zoom
+                System.out.println("Zoom ended: Final zoom level: " + finalZoom);
             }
         });
+
+    }
+
+    private Perspective getSelectedPerspective() {
+        Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+        return (selectedTab instanceof Perspective) ? (Perspective) selectedTab : null;
+    }
+
+    // Update undo/redo buttons dynamically
+    private void updateUndoRedoButtons(Perspective perspective) {
+        if (perspective != null) {
+            undoButton.setDisable(!perspective.getCommandManager().canUndo());
+            redoButton.setDisable(!perspective.getCommandManager().canRedo());
+        }
     }
 
 
@@ -116,34 +146,48 @@ public class PhotoEditorController {
 
     private void initializeDragging(ImageView imageView, Perspective perspective) {
         imageView.setOnMousePressed(event -> {
-            perspective.setX(event.getSceneX());
-            perspective.setY(event.getSceneY());
+            // Store the ImageView's initial position (translation values) when drag starts
+            perspective.setX(imageView.getTranslateX());
+            perspective.setY(imageView.getTranslateY());
+
+            // Also store the mouse's starting position for relative movement
+            perspective.setDragStartX(event.getSceneX());
+            perspective.setDragStartY(event.getSceneY());
         });
 
         imageView.setOnMouseDragged(event -> {
-            double deltaX = event.getSceneX() - perspective.getX();
-            double deltaY = event.getSceneY() - perspective.getY();
+            // Calculate deltas based on the mouse's movement
+            double deltaX = event.getSceneX() - perspective.getDragStartX();
+            double deltaY = event.getSceneY() - perspective.getDragStartY();
 
-            imageView.setTranslateX(imageView.getTranslateX() + deltaX);
-            imageView.setTranslateY(imageView.getTranslateY() + deltaY);
+            // Update the ImageView's translation based on the deltas
+            imageView.setTranslateX(perspective.getX() + deltaX);
+            imageView.setTranslateY(perspective.getY() + deltaY);
 
-            perspective.setX(event.getSceneX());
-            perspective.setY(event.getSceneY());
-
+            // Log real-time updates
             updatePositionLabel(imageView.getTranslateX(), -imageView.getTranslateY());
         });
 
         imageView.setOnMouseReleased(event -> {
-            // Log the final position when dragging ends
+            // Determine the final position of the ImageView after drag
+            double initialX = perspective.getX();
+            double initialY = perspective.getY();
             double finalX = imageView.getTranslateX();
             double finalY = imageView.getTranslateY();
-            System.out.println("Drag ended: Final position (x, y): "
-                    + finalX + ", " + finalY);
 
-            // Store the initial and final positions (future implementation)
-            // For now, simply log them
+            // Create and execute the PositioningCommand
+            PositioningCommand dragCommand = new PositioningCommand(imageView, initialX, initialY, finalX, finalY);
+            perspective.getCommandManager().executeCommand(dragCommand);
+
+            // Update undo/redo buttons
+            updateUndoRedoButtons(perspective);
+
+            // Log final position
+            System.out.println("Drag ended: Initial position (x, y): " + initialX + ", " + initialY);
+            System.out.println("Drag ended: Final position (x, y): " + finalX + ", " + finalY);
         });
-    }
+
+}
 
 
 

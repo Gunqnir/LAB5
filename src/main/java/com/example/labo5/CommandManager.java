@@ -3,30 +3,20 @@ package com.example.labo5;
 import java.util.Stack;
 
 public class CommandManager {
-    private static CommandManager instance;
     private final Stack<Command> undoStack = new Stack<>();
     private final Stack<Command> redoStack = new Stack<>();
 
-    private CommandManager() {}
-
-    public static CommandManager getInstance() {
-        if (instance == null) {
-            instance = new CommandManager();
-        }
-        return instance;
-    }
-
     public void executeCommand(Command command) {
         command.execute();
-        undoStack.push(command); // Add to undo stack
-        redoStack.clear();       // Clear redo stack
+        undoStack.push(command);
+        redoStack.clear(); // Clear redo stack on a new action
     }
 
     public void undo() {
         if (!undoStack.isEmpty()) {
             Command command = undoStack.pop();
             command.undo();
-            redoStack.push(command); // Add to redo stack
+            redoStack.push(command);
         }
     }
 
@@ -34,17 +24,15 @@ public class CommandManager {
         if (!redoStack.isEmpty()) {
             Command command = redoStack.pop();
             command.execute();
-            undoStack.push(command); // Add back to undo stack
+            undoStack.push(command);
         }
     }
 
-    // Check if the undo stack is empty
-    public boolean isUndoStackEmpty() {
-        return undoStack.isEmpty();
+    public boolean canUndo() {
+        return !undoStack.isEmpty();
     }
 
-    // Check if the redo stack is empty
-    public boolean isRedoStackEmpty() {
-        return redoStack.isEmpty();
+    public boolean canRedo() {
+        return !redoStack.isEmpty();
     }
 }
