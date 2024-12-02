@@ -58,20 +58,31 @@ public class PhotoEditorController {
         });
 
         // Listen to zoom slider changes
-        zoomSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+        zoomSlider.setOnMousePressed(event -> {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab instanceof Perspective) {
+                Perspective perspective = (Perspective) selectedTab;
+                perspective.setZoomLevel(zoomSlider.getValue() / 100.0); // Record the initial zoom
+            }
+        });
+
+        zoomSlider.setOnMouseReleased(event -> {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab instanceof Perspective) {
                 Perspective perspective = (Perspective) selectedTab;
 
-                double zoomFactor = newVal.doubleValue() / 100.0; // Convert slider value to zoom factor
-                perspective.setZoomLevel(zoomFactor);
+                double initialZoom = perspective.getZoomLevel(); // Initial zoom
+                double finalZoom = zoomSlider.getValue() / 100.0; // Final zoom
 
-                ImageView imageView = perspective.getImageView();
-                imageView.setScaleX(zoomFactor);
-                imageView.setScaleY(zoomFactor);
+                // Create a zoom command
+                Command zoomCommand = new ZoomingCommand(perspective.getImageView(), finalZoom / initialZoom);
+                CommandManager.getInstance().executeCommand(zoomCommand);
 
-                // Update zoom percentage label
-                updateZoomLabel(newVal.doubleValue());
+                // Update perspective zoom
+                perspective.setZoomLevel(finalZoom);
+                updateZoomLabel(finalZoom*100);
+                // Log the final zoom level
+                System.out.println("Zoom ended: Final zoom level: " + (finalZoom * 100) + "%");
             }
         });
     }
@@ -103,9 +114,7 @@ public class PhotoEditorController {
 
 
 
-    private void initializeDraggingForPerspective(Perspective perspective) {
-        ImageView imageView = perspective.getImageView();
-
+    private void initializeDragging(ImageView imageView, Perspective perspective) {
         imageView.setOnMousePressed(event -> {
             perspective.setX(event.getSceneX());
             perspective.setY(event.getSceneY());
@@ -115,18 +124,27 @@ public class PhotoEditorController {
             double deltaX = event.getSceneX() - perspective.getX();
             double deltaY = event.getSceneY() - perspective.getY();
 
-            // Update the ImageView translation
             imageView.setTranslateX(imageView.getTranslateX() + deltaX);
             imageView.setTranslateY(imageView.getTranslateY() + deltaY);
 
-            // Update the Perspective's position
             perspective.setX(event.getSceneX());
             perspective.setY(event.getSceneY());
 
-            // Update the position label
             updatePositionLabel(imageView.getTranslateX(), -imageView.getTranslateY());
         });
+
+        imageView.setOnMouseReleased(event -> {
+            // Log the final position when dragging ends
+            double finalX = imageView.getTranslateX();
+            double finalY = imageView.getTranslateY();
+            System.out.println("Drag ended: Final position (x, y): "
+                    + finalX + ", " + finalY);
+
+            // Store the initial and final positions (future implementation)
+            // For now, simply log them
+        });
     }
+
 
 
 
@@ -183,7 +201,7 @@ public class PhotoEditorController {
         tabPane.getSelectionModel().select(perspective);
 
         // Initialize dragging and zooming for the new perspective
-        initializeDraggingForPerspective(perspective);
+        initializeDragging(perspective.getImageView(), perspective);
 
         System.out.println("New perspective created: " + perspective.getText());
     }
