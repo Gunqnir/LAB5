@@ -3,8 +3,18 @@ package com.example.labo5;
 import java.util.Stack;
 
 public class CommandManager {
+    private static CommandManager instance;
     private final Stack<Command> undoStack = new Stack<>();
     private final Stack<Command> redoStack = new Stack<>();
+
+    private CommandManager() {}
+
+    public static CommandManager getInstance() {
+        if (instance == null) {
+            instance = new CommandManager();
+        }
+        return instance;
+    }
 
     public void executeCommand(Command command) {
         command.execute();

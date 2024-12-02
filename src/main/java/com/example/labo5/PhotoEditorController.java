@@ -9,7 +9,7 @@ import javafx.scene.layout.HBox;
 
 public class PhotoEditorController {
     private final ImageModel imageModel = new ImageModel(); // Central model for the image
-    private final CommandManager commandManager = new CommandManager(); // Command manager for undo/redo
+    private final CommandManager commandManager = CommandManager.getInstance();
 
     @FXML
     private TabPane tabPane; // Injected from FXML
