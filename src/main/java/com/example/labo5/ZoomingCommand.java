@@ -4,8 +4,8 @@ import javafx.scene.image.ImageView;
 
 public class ZoomingCommand implements Command {
     private final ImageView imageView;
-    private final double initialZoom; // Initial zoom level
-    private final double finalZoom;   // Final zoom level
+    private double initialZoom; // Initial zoom level (dynamically updated)
+    private double finalZoom;   // Final zoom level (dynamically updated)
 
     public ZoomingCommand(ImageView imageView, double initialZoom, double finalZoom) {
         this.imageView = imageView;
@@ -15,14 +15,20 @@ public class ZoomingCommand implements Command {
 
     @Override
     public void execute() {
-        // Set the ImageView to the final zoom level
+        // Update the initialZoom dynamically in case the command is re-executed
+        initialZoom = imageView.getScaleX();
+
+        // Apply the final zoom level
         imageView.setScaleX(finalZoom);
         imageView.setScaleY(finalZoom);
     }
 
     @Override
     public void undo() {
-        // Revert the ImageView to the initial zoom level
+        // Update the finalZoom dynamically in case the command is undone
+        finalZoom = imageView.getScaleX();
+
+        // Revert to the initial zoom level
         imageView.setScaleX(initialZoom);
         imageView.setScaleY(initialZoom);
     }

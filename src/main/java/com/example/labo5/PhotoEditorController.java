@@ -46,6 +46,17 @@ public class PhotoEditorController {
             Perspective perspective = getSelectedPerspective();
             if (perspective != null) {
                 perspective.getCommandManager().undo();
+
+                // Update the zoom slider to reflect the current zoom level
+                double currentZoom = perspective.getImageView().getScaleX();
+                zoomSlider.setValue(currentZoom * 100);
+                updateZoomLabel(currentZoom * 100);
+
+                // Update the position label to reflect the current position
+                double currentX = perspective.getImageView().getTranslateX();
+                double currentY = perspective.getImageView().getTranslateY();
+                updatePositionLabel(currentX, -currentY);
+
                 updateUndoRedoButtons(perspective);
             }
         });
@@ -54,9 +65,21 @@ public class PhotoEditorController {
             Perspective perspective = getSelectedPerspective();
             if (perspective != null) {
                 perspective.getCommandManager().redo();
+
+                // Update the zoom slider to reflect the current zoom level
+                double currentZoom = perspective.getImageView().getScaleX();
+                zoomSlider.setValue(currentZoom * 100);
+                updateZoomLabel(currentZoom * 100);
+
+                // Update the position label to reflect the current position
+                double currentX = perspective.getImageView().getTranslateX();
+                double currentY = perspective.getImageView().getTranslateY();
+                updatePositionLabel(currentX, -currentY);
+
                 updateUndoRedoButtons(perspective);
             }
         });
+
 
         // Listen to tab selection changes
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
