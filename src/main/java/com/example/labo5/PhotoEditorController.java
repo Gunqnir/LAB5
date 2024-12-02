@@ -1,5 +1,7 @@
 package com.example.labo5;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
@@ -7,7 +9,7 @@ import javafx.scene.layout.HBox;
 
 public class PhotoEditorController {
     private final ImageModel imageModel = new ImageModel(); // Central model for the image
-    private final CommandManager commandManager = CommandManager.getInstance(); // Singleton CommandManager
+    private final CommandManager commandManager = new CommandManager(); // Command manager for undo/redo
 
     @FXML
     private TabPane tabPane; // Injected from FXML
@@ -22,29 +24,28 @@ public class PhotoEditorController {
     @FXML
     private Label positionLabel; // Label to display x and y coordinates
     @FXML
-    private HBox controlBar; // Toolbar at the bottom
-    @FXML
     private MenuItem ouvrirMenuItem; // Injected from FXML
     @FXML
     private MenuItem newPerspectiveMenuItem; // Injected from FXML
     @FXML
     private MenuItem sauvegarderMenuItem; // Placeholder for Save functionality
+    @FXML
+    private MenuItem fermerToutMenuItem; // Injected from FXML
+    @FXML
+    private HBox controlBar; // Toolbar at the bottom
 
     @FXML
     public void initialize() {
-        // Set actions for undo and redo
-        undoButton.setOnAction(e -> {
-            commandManager.undo();
-            updateUndoRedoButtons();
-        });
+        // Initially hide the control bar as no image is loaded yet
+        controlBar.setVisible(false);
 
-        redoButton.setOnAction(e -> {
-            commandManager.redo();
-            updateUndoRedoButtons();
-        });
+        // Set actions for undo and redo
+        undoButton.setOnAction(e -> commandManager.undo());
+        redoButton.setOnAction(e -> commandManager.redo());
 
         // Disable undo and redo initially
-        updateUndoRedoButtons();
+        undoButton.setDisable(true);
+        redoButton.setDisable(true);
 
         // Listen to tab selection changes
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -61,20 +62,20 @@ public class PhotoEditorController {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab instanceof Perspective) {
                 Perspective perspective = (Perspective) selectedTab;
-                double zoomFactor = newVal.doubleValue() / 100.0; // Convert slider value to zoom factor
-                ZoomingCommand zoomingCommand = new ZoomingCommand(perspective.getImageView(), zoomFactor);
-                commandManager.executeCommand(zoomingCommand);
 
+                double zoomFactor = newVal.doubleValue() / 100.0; // Convert slider value to zoom factor
+                perspective.setZoomLevel(zoomFactor);
+
+                ImageView imageView = perspective.getImageView();
+                imageView.setScaleX(zoomFactor);
+                imageView.setScaleY(zoomFactor);
+
+                // Update zoom percentage label
                 updateZoomLabel(newVal.doubleValue());
-                updateUndoRedoButtons();
             }
         });
     }
 
-    private void updateUndoRedoButtons() {
-        undoButton.setDisable(commandManager.isUndoStackEmpty());
-        redoButton.setDisable(commandManager.isRedoStackEmpty());
-    }
 
     private void updateUIForPerspective(Perspective perspective) {
         controlBar.setVisible(true);
@@ -100,6 +101,8 @@ public class PhotoEditorController {
         positionLabel.setText(String.format("x = %.0f : y = %.0f", x, y));
     }
 
+
+
     private void initializeDraggingForPerspective(Perspective perspective) {
         ImageView imageView = perspective.getImageView();
 
@@ -112,16 +115,22 @@ public class PhotoEditorController {
             double deltaX = event.getSceneX() - perspective.getX();
             double deltaY = event.getSceneY() - perspective.getY();
 
-            PositioningCommand positioningCommand = new PositioningCommand(imageView, deltaX, deltaY);
-            commandManager.executeCommand(positioningCommand);
+            // Update the ImageView translation
+            imageView.setTranslateX(imageView.getTranslateX() + deltaX);
+            imageView.setTranslateY(imageView.getTranslateY() + deltaY);
 
+            // Update the Perspective's position
             perspective.setX(event.getSceneX());
             perspective.setY(event.getSceneY());
 
+            // Update the position label
             updatePositionLabel(imageView.getTranslateX(), -imageView.getTranslateY());
-            updateUndoRedoButtons();
         });
     }
+
+
+
+
 
     private void onLoadImage() {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
@@ -179,14 +188,26 @@ public class PhotoEditorController {
         System.out.println("New perspective created: " + perspective.getText());
     }
 
-    // Method to dynamically set menu items (called during application setup)
-    public void setMenuItems(MenuItem ouvrir, MenuItem undo, MenuItem redo, MenuItem newPerspective, MenuItem sauvegarder) {
+
+
+    public void setMenuItems(MenuItem ouvrir, MenuItem sauvegarder, Menu perspectiveMenu) {
         this.ouvrirMenuItem = ouvrir;
-        this.newPerspectiveMenuItem = newPerspective;
         this.sauvegarderMenuItem = sauvegarder;
+        this.newPerspectiveMenuItem = perspectiveMenu;
 
         // Set up menu item actions
         this.ouvrirMenuItem.setOnAction(e -> onLoadImage());
         this.newPerspectiveMenuItem.setOnAction(e -> createNewPerspective());
+        perspectiveMenu.setDisable(true); // Parent button is disabled, not menu item.
+
+        // Initially disable menu items
+        sauvegarderMenuItem.setDisable(true);
+
+        // Attach observers to ImageModel for dynamic updates
+        imageModel.attach(model -> {
+            boolean imageLoaded = model.getImage() != null;
+            perspectiveMenu.setDisable(!imageLoaded);
+            sauvegarderMenuItem.setDisable(!imageLoaded);
+        });
     }
 }

@@ -23,14 +23,12 @@ public class PhotoEditorApplication extends Application {
         Menu aide = new Menu("Aide");
 
         // Fichier Menu Items
-        MenuItem nouveau = new MenuItem("Nouveau");
         MenuItem ouvrir = new MenuItem("Ouvrir");
         MenuItem sauvegarder = new MenuItem("Sauvegarder");
-        MenuItem fermerTout = new MenuItem("Fermer tout");
         MenuItem quitter = new MenuItem("Quitter");
         quitter.setOnAction(e -> System.exit(0));
 
-        fichier.getItems().addAll(nouveau, ouvrir, sauvegarder, fermerTout, quitter);
+        fichier.getItems().addAll(ouvrir, sauvegarder, quitter);
 
         // Perspective Menu Items
         MenuItem newPerspective = new MenuItem("New Perspective");
@@ -42,7 +40,7 @@ public class PhotoEditorApplication extends Application {
 
         // Get the controller and set the menu items
         PhotoEditorController controller = fxmlLoader.getController();
-        controller.setMenuItems(ouvrir, sauvegarder, fermerTout, perspective, newPerspective);
+        controller.setMenuItems(ouvrir, sauvegarder, perspective);
 
         // Stage setup
         Scene scene = new Scene(layout, 800, 600);
@@ -55,4 +53,3 @@ public class PhotoEditorApplication extends Application {
         launch();
     }
 }
-
