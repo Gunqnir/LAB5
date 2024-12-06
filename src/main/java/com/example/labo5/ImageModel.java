@@ -6,7 +6,7 @@ import java.util.List;
 
 public class ImageModel {
     private List<Observer> observers = new ArrayList<>();
-    private Image image; // The current image being managed
+    private Image image;
 
     public void attach(Observer observer) {
         observers.add(observer);
@@ -24,7 +24,7 @@ public class ImageModel {
 
     public void setImage(Image image) {
         this.image = image;
-        notifyObservers(); // Notify all observers of the image change
+        notifyObservers();
     }
 
     public Image getImage() {
@@ -33,6 +33,6 @@ public class ImageModel {
 
     // New method to check if an image is loaded
     public boolean isImageLoaded() {
-        return image != null; // Return true if the image is not null
+        return image != null;
     }
 }

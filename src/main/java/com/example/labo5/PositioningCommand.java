@@ -17,14 +17,12 @@ public class PositioningCommand implements Command {
 
     @Override
     public void execute() {
-        // Move the ImageView to the final position
         imageView.setTranslateX(finalX);
         imageView.setTranslateY(finalY);
     }
 
     @Override
     public void undo() {
-        // Revert the ImageView to the initial position
         imageView.setTranslateX(initialX);
         imageView.setTranslateY(initialY);
     }

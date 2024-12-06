@@ -1,44 +1,37 @@
 package com.example.labo5;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 
 public class PhotoEditorController {
-    private final ImageModel imageModel = new ImageModel(); // Central model for the image
-
+    private final ImageModel imageModel = new ImageModel();
     @FXML
-    private TabPane tabPane; // Injected from FXML
+    private TabPane tabPane;
     @FXML
-    private Button undoButton; // Undo button
+    private Button undoButton;
     @FXML
-    private Button redoButton; // Redo button
+    private Button redoButton;
     @FXML
-    private Slider zoomSlider; // Slider for zooming
+    private Slider zoomSlider;
     @FXML
     private Label zoomPercentageLabel; // Label to display zoom percentage
     @FXML
     private Label positionLabel; // Label to display x and y coordinates
     @FXML
-    private MenuItem ouvrirMenuItem; // Injected from FXML
+    private MenuItem ouvrirMenuItem;
     @FXML
-    private MenuItem newPerspectiveMenuItem; // Injected from FXML
+    private MenuItem newPerspectiveMenuItem;
     @FXML
-    private MenuItem sauvegarderMenuItem; // Placeholder for Save functionality
-    @FXML
-    private MenuItem fermerToutMenuItem; // Injected from FXML
-    @FXML
-    private HBox controlBar; // Toolbar at the bottom
+    private HBox controlBar; // Toolbar UI at the bottom
 
     @FXML
     public void initialize() {
         // Initially hide the control bar as no image is loaded yet
         controlBar.setVisible(false);
 
-        // Disable undo and redo initially
+        // Disable undo and redo until an action is made
         undoButton.setDisable(true);
         redoButton.setDisable(true);
 
@@ -47,12 +40,12 @@ public class PhotoEditorController {
             if (perspective != null) {
                 perspective.getCommandManager().undo();
 
-                // Update the zoom slider to reflect the current zoom level
+                // Update the zoom slider after an undo
                 double currentZoom = perspective.getImageView().getScaleX();
                 zoomSlider.setValue(currentZoom * 100);
                 updateZoomLabel(currentZoom * 100);
 
-                // Update the position label to reflect the current position
+                // Update the position label after an undo
                 double currentX = perspective.getImageView().getTranslateX();
                 double currentY = perspective.getImageView().getTranslateY();
                 updatePositionLabel(currentX, -currentY);
@@ -66,12 +59,12 @@ public class PhotoEditorController {
             if (perspective != null) {
                 perspective.getCommandManager().redo();
 
-                // Update the zoom slider to reflect the current zoom level
+                // Update the zoom slider to reflect the current zoom level after redo
                 double currentZoom = perspective.getImageView().getScaleX();
                 zoomSlider.setValue(currentZoom * 100);
                 updateZoomLabel(currentZoom * 100);
 
-                // Update the position label to reflect the current position
+                // Update the position label to reflect the current position after redo
                 double currentX = perspective.getImageView().getTranslateX();
                 double currentY = perspective.getImageView().getTranslateY();
                 updatePositionLabel(currentX, -currentY);
@@ -80,19 +73,18 @@ public class PhotoEditorController {
             }
         });
 
-
-        // Listen to tab selection changes
+        // Logic for changing tabs
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof Perspective) {
                 Perspective perspective = (Perspective) newTab;
                 updateUIForPerspective(perspective);
                 updateUndoRedoButtons((Perspective) newTab);
             } else {
-                resetUI(); // Hide controls for non-Perspective tabs
+                resetUI(); // Hide controls for thumbnail tab
             }
         });
 
-        // Listen to zoom slider changes
+        // Logic for the zoom slider, tracks the beginning of the zoom action
         zoomSlider.setOnMousePressed(event -> {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab instanceof Perspective) {
@@ -101,6 +93,8 @@ public class PhotoEditorController {
             }
         });
 
+        // Logic for the zoom slider, tracks the end of the zoom action
+        // Having a set beginning and end defined makes it easier to manage as a command
         zoomSlider.setOnMouseReleased(event -> {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab instanceof Perspective) {
@@ -116,11 +110,8 @@ public class PhotoEditorController {
                 perspective.getCommandManager().executeCommand(zoomCommand);
                 updateUndoRedoButtons(perspective);
 
-                // Update the perspective zoom
                 perspective.setZoomLevel(finalZoom);
                 updateZoomLabel(finalZoom * 100);
-
-                // Log the final zoom
                 System.out.println("Zoom ended: Final zoom level: " + finalZoom);
             }
         });
@@ -132,14 +123,12 @@ public class PhotoEditorController {
         return (selectedTab instanceof Perspective) ? (Perspective) selectedTab : null;
     }
 
-    // Update undo/redo buttons dynamically
     private void updateUndoRedoButtons(Perspective perspective) {
         if (perspective != null) {
             undoButton.setDisable(!perspective.getCommandManager().canUndo());
             redoButton.setDisable(!perspective.getCommandManager().canRedo());
         }
     }
-
 
     private void updateUIForPerspective(Perspective perspective) {
         controlBar.setVisible(true);
@@ -165,29 +154,24 @@ public class PhotoEditorController {
         positionLabel.setText(String.format("x = %.0f : y = %.0f", x, y));
     }
 
-
-
+    // Logic for the image positioning functionality
+    // Similar logic to the zoom feature, having a defined beginning and end helps manage commands
+    // OnMouseDragged updates the position of the image while it's moving, but doesn't log every movement
+    // We only care about the beginning and end, as to undo/redo
     private void initializeDragging(ImageView imageView, Perspective perspective) {
+        // Two sets to know the image location on top of the mouse location
         imageView.setOnMousePressed(event -> {
-            // Store the ImageView's initial position (translation values) when drag starts
             perspective.setX(imageView.getTranslateX());
             perspective.setY(imageView.getTranslateY());
-
-            // Also store the mouse's starting position for relative movement
             perspective.setDragStartX(event.getSceneX());
             perspective.setDragStartY(event.getSceneY());
         });
 
         imageView.setOnMouseDragged(event -> {
-            // Calculate deltas based on the mouse's movement
             double deltaX = event.getSceneX() - perspective.getDragStartX();
             double deltaY = event.getSceneY() - perspective.getDragStartY();
-
-            // Update the ImageView's translation based on the deltas
             imageView.setTranslateX(perspective.getX() + deltaX);
             imageView.setTranslateY(perspective.getY() + deltaY);
-
-            // Log real-time updates
             updatePositionLabel(imageView.getTranslateX(), -imageView.getTranslateY());
         });
 
@@ -198,25 +182,17 @@ public class PhotoEditorController {
             double finalX = imageView.getTranslateX();
             double finalY = imageView.getTranslateY();
 
-            // Create and execute the PositioningCommand
             PositioningCommand dragCommand = new PositioningCommand(imageView, initialX, initialY, finalX, finalY);
             perspective.getCommandManager().executeCommand(dragCommand);
 
             // Update undo/redo buttons
             updateUndoRedoButtons(perspective);
-
-            // Log final position
             System.out.println("Drag ended: Initial position (x, y): " + initialX + ", " + initialY);
             System.out.println("Drag ended: Final position (x, y): " + finalX + ", " + finalY);
         });
+    }
 
-}
-
-
-
-
-
-
+    // Image uploader
     private void onLoadImage() {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
@@ -225,8 +201,8 @@ public class PhotoEditorController {
         if (selectedFile != null) {
             System.out.println("File selected: " + selectedFile.getAbsolutePath());
             javafx.scene.image.Image image = new javafx.scene.image.Image(selectedFile.toURI().toString());
-            imageModel.setImage(image); // Update the ImageModel with the new image
-            updateThumbnailTab(image); // Create or update the thumbnail tab
+            imageModel.setImage(image);
+            updateThumbnailTab(image);
         } else {
             System.out.println("No file selected.");
         }
@@ -262,37 +238,25 @@ public class PhotoEditorController {
         int perspectiveCount = tabPane.getTabs().size();
 
         Perspective perspective = new Perspective("Perspective " + perspectiveCount, imageModel);
-        imageModel.attach(perspective); // Attach the perspective as an observer of the ImageModel
+        imageModel.attach(perspective);
 
         tabPane.getTabs().add(perspective);
         tabPane.getSelectionModel().select(perspective);
-
-        // Initialize dragging and zooming for the new perspective
         initializeDragging(perspective.getImageView(), perspective);
-
         System.out.println("New perspective created: " + perspective.getText());
     }
 
-
-
-    public void setMenuItems(MenuItem ouvrir, MenuItem sauvegarder, Menu perspectiveMenu) {
+    // Links the methods to the buttons
+    public void setMenuItems(MenuItem ouvrir, Menu perspectiveMenu) {
         this.ouvrirMenuItem = ouvrir;
-        this.sauvegarderMenuItem = sauvegarder;
         this.newPerspectiveMenuItem = perspectiveMenu;
-
-        // Set up menu item actions
         this.ouvrirMenuItem.setOnAction(e -> onLoadImage());
         this.newPerspectiveMenuItem.setOnAction(e -> createNewPerspective());
-        perspectiveMenu.setDisable(true); // Parent button is disabled, not menu item.
+        perspectiveMenu.setDisable(true);
 
-        // Initially disable menu items
-        sauvegarderMenuItem.setDisable(true);
-
-        // Attach observers to ImageModel for dynamic updates
         imageModel.attach(model -> {
             boolean imageLoaded = model.getImage() != null;
             perspectiveMenu.setDisable(!imageLoaded);
-            sauvegarderMenuItem.setDisable(!imageLoaded);
         });
     }
 }

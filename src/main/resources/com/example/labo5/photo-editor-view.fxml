@@ -28,23 +28,17 @@
     </center>
     <bottom>
         <HBox fx:id="controlBar" spacing="10" alignment="CENTER_LEFT">
-
-            <!-- Zoom Slider -->
             <Label text="Zoom: "/>
             <Slider fx:id="zoomSlider" min="10" max="200" value="100" blockIncrement="10" />
             <Label fx:id="zoomPercentageLabel" text="100%" style="-fx-padding: 10px;"/>
 
-            <!-- Spacer for Consistent Margin -->
-            <Region prefWidth="90"/> <!-- Adjust this to tweak the margin -->
+            <Region prefWidth="90"/>
 
-            <!-- Undo/Redo Buttons -->
             <Button fx:id="undoButton" text="Undo"/>
             <Button fx:id="redoButton" text="Redo"/>
 
-            <!-- Spacer for Center Alignment -->
             <Region HBox.hgrow="ALWAYS"/>
 
-            <!-- X and Y Position -->
             <Label fx:id="positionLabel" text="x = 0; y = 0" style="-fx-padding: 10px;"/>
         </HBox>
     </bottom>

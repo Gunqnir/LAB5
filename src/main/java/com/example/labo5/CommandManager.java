@@ -1,5 +1,4 @@
 package com.example.labo5;
-
 import java.util.Stack;
 
 public class CommandManager {
@@ -9,7 +8,7 @@ public class CommandManager {
     public void executeCommand(Command command) {
         command.execute();
         undoStack.push(command);
-        redoStack.clear(); // Clear redo stack on a new action
+        redoStack.clear();
     }
 
     public void undo() {
